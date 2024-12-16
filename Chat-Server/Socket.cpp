@@ -25,7 +25,7 @@ bool SocketHandler::SetupConnect()
         perror("Socket creation failed!");
         return false;
     }
-    std::cout << "Socket create sucefull!\n";
+    std::cout << "Socket create successful!\n";
     
 
     if(bind(_server_fd, (struct sockaddr*)&_serverAddr, sizeof(_serverAddr)) < 0)
@@ -34,7 +34,7 @@ bool SocketHandler::SetupConnect()
         close(_server_fd);
         return false;
     }
-    std::cout << "Binding sucefull!\n";
+    std::cout << "Binding successful!\n";
 
     if(listen(_server_fd, 5) < 0)
     {
@@ -43,7 +43,7 @@ bool SocketHandler::SetupConnect()
         return false;
     }
 
-    std::cout << "Listen sucefull!\n";
+    std::cout << "Listen successful!\n";
     
     if((_client_fd = accept(_server_fd, NULL, NULL)) == -1)
     {
@@ -51,7 +51,7 @@ bool SocketHandler::SetupConnect()
         exit(3);
         return false;
     }
-    std::cout << "Accept sucefull!\n";
+    std::cout << "Accept successful!\n";
      return true;
 }
 
