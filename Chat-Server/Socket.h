@@ -12,6 +12,7 @@ class SocketHandler
         SocketHandler();
         ~SocketHandler();
         bool SetupConnect();
+        bool ClientConnect();
         std::string getMessage();
         void SendMessage(std::string message);
     

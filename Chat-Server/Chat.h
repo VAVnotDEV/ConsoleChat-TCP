@@ -13,6 +13,8 @@ public:
     bool addUser(const User& user);
     bool authUser();
     void sendMessage();
+    void recvMessage();
+	 
     
 private:
 std::vector<User>_user;
