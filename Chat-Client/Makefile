@@ -1,2 +1,2 @@
-ConsoleChat-Client: main.cpp
-			g++ -o ConsoleChat-Client main.cpp sockHandler.cpp
+ConsoleChat-Client: Main.cpp
+			g++ -o ConsoleChat-Client Main.cpp SocketHandler.cpp

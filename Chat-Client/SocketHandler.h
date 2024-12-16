@@ -12,7 +12,7 @@ class SocketHandler
     public:
     SocketHandler();
     ~SocketHandler();
-    bool CreateSocket();
+    bool SetupConnection(const std::string& ip,const int& port);
     void SendMessage();
 
     private:

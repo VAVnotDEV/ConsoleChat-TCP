@@ -12,10 +12,11 @@ void f_registerNewUser (std::string& login, std::string& password)
                     system("pause");
                     system("cls");
 }
-void f_UserLogin(std::string& login, std::string& password)
+bool UserLogin(std::string& login, std::string& password)
 {
 
 }
+
 void session(int choose)
 {
     std::string text, reciever;
@@ -44,7 +45,7 @@ auto main() -> int
                     f_registerNewUser(login, password);               
                 break;
                 case LOGIN:
-                if (f_UserLogin(login, password) == true)
+                if (UserLogin(login, password))
                 {
                     session(choise);
                 }

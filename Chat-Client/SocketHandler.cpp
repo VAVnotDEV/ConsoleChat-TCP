@@ -1,21 +1,23 @@
-#include "sockHandler.h"
+#include "SocketHandler.h"
 
 SocketHandler::SocketHandler()
 {
-    CreateSocket();
 }
 
 SocketHandler::~SocketHandler()
 {
+    if(_sock_fd != -1)
+    {
     close(_sock_fd);
+    }
 }
 
-bool SocketHandler::CreateSocket()
+bool SocketHandler::SetupConnection(const std::string& ip, const int& port)
 {
     if(_sock_fd = socket(AF_INET, SOCK_STREAM, 0) == -1)
     {
         perror("Socket created failed!");
-        exit(1);
+        return false;
     }
 
     std::cout << "Socket created\n";
@@ -24,11 +26,12 @@ bool SocketHandler::CreateSocket()
     _addr.sin_port = htons(63462);
     inet_pton(AF_INET, "5.53.20.189", &_addr.sin_addr);
 
-    if (connect(_sock_fd, (struct sockaddr*)&_addr, sizeof(_addr)) == -1)
+    if ((connect(_sock_fd, (struct sockaddr*)&_addr, sizeof(_addr))) == -1)
     {
         perror("Connect error");
-        exit(2);
+        return false;
     }
+    std::cout << "Connection sucefull!\n";
     return true;
 }
 
