@@ -11,9 +11,9 @@ class SocketHandler
     public:
         SocketHandler();
         ~SocketHandler();
-        bool SetupConnect();
-        bool ClientConnect();
-        std::string getMessage();
+        bool setupConnect();
+        bool clientConnect();
+        std::string receiveMessage();
         void SendMessage(std::string message);
     
     private:

@@ -12,7 +12,7 @@ SocketHandler::~SocketHandler()
     close(_server_fd);
 }
 
-bool SocketHandler::SetupConnect()
+bool SocketHandler::setupConnect()
 {
     memset(&_serverAddr, 0, sizeof(_serverAddr));
     _serverAddr.sin_family = AF_INET;
@@ -55,7 +55,7 @@ bool SocketHandler::SetupConnect()
      return true;
 }
 
-std::string SocketHandler::getMessage()
+std::string SocketHandler::receiveMessage()
 {
     char buffer[1024];
 
