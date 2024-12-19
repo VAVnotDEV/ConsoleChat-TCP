@@ -42,8 +42,13 @@ bool SocketHandler::setupConnect()
         close(_server_fd);
         return false;
     }
-
     std::cout << "Listen successful!\n";
+     return true;
+}
+
+bool SocketHandler::clientConnect()
+{
+    
     
     if((_client_fd = accept(_server_fd, NULL, NULL)) == -1)
     {
@@ -52,7 +57,6 @@ bool SocketHandler::setupConnect()
         return false;
     }
     std::cout << "Accept successful!\n";
-     return true;
 }
 
 std::string SocketHandler::receiveMessage()

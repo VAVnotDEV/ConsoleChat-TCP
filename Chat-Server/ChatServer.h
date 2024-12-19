@@ -5,11 +5,11 @@
 #include <vector>
 #include "Socket.h"
 
-class Chat
+class ChatServer
 {
 public:
-    Chat() = default;
-    ~Chat();
+    ChatServer() = default;
+    ~ChatServer();
     bool addUser(const User& user);
     bool authUser();
     void sendMessage();
