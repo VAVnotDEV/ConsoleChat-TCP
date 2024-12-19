@@ -12,11 +12,12 @@ class SocketHandler
     public:
     SocketHandler();
     ~SocketHandler();
-    bool SetupConnection(const std::string ip, const int port);
-    void SendMessage();
+    bool serverConnect(const std::string ip, const int port);
+    bool sendMessage(const std::string& message);
+    std::string receiveMessage();
+    void closeSocket();
 
     private:
     int _sock_fd;
     struct sockaddr_in _addr;
-
 };

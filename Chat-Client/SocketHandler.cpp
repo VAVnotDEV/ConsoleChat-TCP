@@ -2,17 +2,15 @@
 
 SocketHandler::SocketHandler()
 {
+    _sock_fd = -1;
 }
 
 SocketHandler::~SocketHandler()
 {
-    if(_sock_fd != -1)
-    {
-    close(_sock_fd);
-    }
+    closeSocket();
 }
 
-bool SocketHandler::SetupConnection(const std::string ip, const int port)
+bool SocketHandler::serverConnect(const std::string ip, const int port)
 {
 
     _sock_fd = socket(AF_INET, SOCK_STREAM, 0);
@@ -33,8 +31,25 @@ bool SocketHandler::SetupConnection(const std::string ip, const int port)
     return true;
 }
 
-void SocketHandler::SendMessage()
+bool SocketHandler::sendMessage(const std::string& message)
 {
-    char message[1024] = "Hello world";
-    //send(sock, message, strlen(message),0);
+    return send(_sock_fd, message.c_str(), message.size(),0) != -1;
+}
+
+std::string SocketHandler::receiveMessage()
+{
+    const uint16_t BUFFER_SIZE = 1024;
+    char buffer[BUFFER_SIZE];
+    memset(buffer, 0, BUFFER_SIZE);
+    if(recv(_sock_fd, buffer, BUFFER_SIZE, 0) < 0)
+    {
+        perror("Receive failed");
+    }
+    return std::string(buffer);
+}
+
+void SocketHandler::closeSocket()
+{
+    close (_sock_fd);
+    _sock_fd = -1;
 }
