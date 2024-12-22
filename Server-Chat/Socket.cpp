@@ -53,9 +53,9 @@ bool SocketHandler::clientConnect()
     if((_client_fd = accept(_server_fd, NULL, NULL)) == -1)
     {
         perror("Accept failed!");
-        exit(3);
         return false;
     }
+    return true;
     std::cout << "Accept successful!\n";
 }
 
@@ -67,7 +67,6 @@ std::string SocketHandler::receiveMessage()
     {    
     std::cout << "Message not recieve!\n";
     }
-    std::cout << buffer << std::endl;
     return buffer;
 }
 
