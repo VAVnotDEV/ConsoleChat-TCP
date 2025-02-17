@@ -4,24 +4,24 @@
 
 auto main() -> int
 {   
-    SocketHandler sock;
+    ServerSock sock;
     sock.setupConnect();
-    sock.clientConnect();
+    int status = sock.clientConnect();
     std::string message;
     
 while(1)
 {
     message = sock.receiveMessage();
     std::cout << message << std::endl;
-    sock.SendMessage(message);
-    if (message == "command_addUser")
-    {
-        std::cout << "AddUser\n";
+    if (message == "cmdRegUser")
+    {   //добавить лоигн и пароль нового пользоватея
+        std::cout << "Register_New_User\n";
     }
-    else if (message == "command_authUser")
+    else if (message == "cmdAuthUser")
     {
-        std::cout << "authUser\n";
+        //Проверка на совпадения логина и пароля, возврат 0 или 1
+        std::cout << "AuthUser\n";
     }
-}
+} 
     return 0;
 }

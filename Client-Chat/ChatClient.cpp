@@ -4,10 +4,9 @@
 
 
 
-void ChatClient::registerNewUser (std::string& login, std::string& password)
+void ChatClient::registerNewUser (std::string login, std::string password)
 {
-    if(socket.sendMessage("REGISTER"))
-    {
+    socket.sendMessage("cmd_RegNewUser");
     std::cout << "\t/ * * Регистрация нового пользователя * */ \n" << "Придумайте логин: "; std::cin >> login;
     std::cin.ignore();
     std::cout << "Придумайте пароль: "; std::getline(std::cin, password);
@@ -15,10 +14,9 @@ void ChatClient::registerNewUser (std::string& login, std::string& password)
     socket.sendMessage(password);
     system("pause");
     system("cls");
-    }
 }
 
-bool ChatClient::userLogin(std::string& login, std::string& password)
+bool ChatClient::userLogin(std::string login, std::string password)
 {
 
 }

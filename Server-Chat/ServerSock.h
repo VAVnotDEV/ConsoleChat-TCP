@@ -6,15 +6,16 @@
 #include <arpa/inet.h>
 #include <unistd.h>
 
-class SocketHandler
+class ServerSock
 {
     public:
-        SocketHandler();
-        ~SocketHandler();
+        ServerSock();
+        ~ServerSock();
         bool setupConnect();
         int clientConnect();
         std::string receiveMessage();
-        void SendMessage(std::string& message);
+        void sendMessage(std::string& message);
+        void closeClientSocket();
     
     private:
         int _sock_fd, _listener_fd;

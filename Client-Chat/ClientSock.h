@@ -7,11 +7,11 @@
 #include <unistd.h>
 #include <string.h>
 
-class SocketHandler
+class ClientSock
 {
     public:
-    SocketHandler();
-    ~SocketHandler();
+    ClientSock();
+    ~ClientSock();
     bool serverConnect(const std::string ip, const int port);
     bool sendMessage(const std::string& message);
     std::string receiveMessage();

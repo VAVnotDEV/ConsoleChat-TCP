@@ -1,16 +1,16 @@
-#include "SocketHandler.h"
+#include "ClientSock.h"
 
-SocketHandler::SocketHandler()
+ClientSock::ClientSock()
 {
     _sock_fd = -1;
 }
 
-SocketHandler::~SocketHandler()
+ClientSock::~ClientSock()
 {
     closeSocket();
 }
 
-bool SocketHandler::serverConnect(const std::string ip, const int port)
+bool ClientSock::serverConnect(const std::string ip, const int port)
 {
 
     _sock_fd = socket(AF_INET, SOCK_STREAM, 0);
@@ -31,24 +31,24 @@ bool SocketHandler::serverConnect(const std::string ip, const int port)
     return true;
 }
 
-bool SocketHandler::sendMessage(const std::string& message)
+bool ClientSock::sendMessage(const std::string& message)
 {
     return send(_sock_fd, message.c_str(), message.size(),0) != -1;
 }
 
-std::string SocketHandler::receiveMessage()
+std::string ClientSock::receiveMessage()
 {
     const size_t BUFFER_SIZE = 1024;
     char buffer[BUFFER_SIZE];
     memset(buffer, 0, BUFFER_SIZE);
-    if(recv(_sock_fd, buffer, BUFFER_SIZE, 0) < 0)
+    if(recv(_sock_fd, buffer, sizeof(buffer), 0) < 0)
     {
         perror("Receive failed");
     }
     return buffer;
 }
 
-void SocketHandler::closeSocket()
+void ClientSock::closeSocket()
 {
     close (_sock_fd);
     _sock_fd = -1;

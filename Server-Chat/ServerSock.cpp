@@ -1,18 +1,18 @@
-#include "Socket.h"
+#include "ServerSock.h"
 
 
-SocketHandler::SocketHandler()
+ServerSock::ServerSock()
 {
    _sock_fd = -1;
 }
 
-SocketHandler::~SocketHandler()
+ServerSock::~ServerSock()
 {
     std::cout << "Call desctructor\n";
     close(_sock_fd);
 }
 
-bool SocketHandler::setupConnect()
+bool ServerSock::setupConnect()
 {
     memset(&_serverAddr, 0, sizeof(_serverAddr));
     _serverAddr.sin_family = AF_INET;
@@ -44,7 +44,7 @@ bool SocketHandler::setupConnect()
      return true;
 }
 
-int SocketHandler::clientConnect()
+int ServerSock::clientConnect()
 {
     if((_sock_fd = accept(_listener_fd, NULL, NULL)) == -1)
     {
@@ -56,10 +56,10 @@ int SocketHandler::clientConnect()
     
 }
 
-std::string SocketHandler::receiveMessage()
+std::string ServerSock::receiveMessage()
 {
     char buffer[_BUFFER_SIZE];
-    size_t bytes_read = recv(_sock_fd, buffer, _BUFFER_SIZE,0);
+    size_t bytes_read = recv(_sock_fd, buffer, sizeof(buffer),0);
     if( bytes_read  < 0)
     {    
     perror("Message not recieve!");
@@ -68,14 +68,21 @@ std::string SocketHandler::receiveMessage()
     else if (bytes_read == 0)
     {
         std::cout << "Connect close";
-        return "";
+        closeClientSocket();
+        return "exit";
     }
     else std::cout << "Message recieve\n";
     return buffer;
 }
 
-void SocketHandler::SendMessage(std::string& message)
+void ServerSock::sendMessage(std::string& message)
 {
     
     send(_sock_fd, message.c_str(), _BUFFER_SIZE,0);
+}
+
+void ServerSock::closeClientSocket()
+{
+    std::cout << "Connect client close" << std::endl;
+    close(_sock_fd);
 }

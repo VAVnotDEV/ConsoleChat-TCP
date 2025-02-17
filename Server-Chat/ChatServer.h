@@ -3,7 +3,7 @@
 #include "User.h"
 #include "Message.h"
 #include <vector>
-#include "Socket.h"
+#include "ServerSock.h"
 
 class ChatServer
 {
@@ -19,5 +19,5 @@ public:
 private:
 std::vector<User>_user;
 std::vector<Message<std::string>>_message;
-std::vector<SocketHandler>_connection;
+std::vector<ServerSock>_connection;
 };
