@@ -5,22 +5,25 @@ int main()
 {
     setlocale(LC_ALL, "");
     ChatClient client;
-    SocketHandler socket;
-    socket.serverConnect("127.0.0.1", 63462);
+    SocketHandler sock;
+    sock.serverConnect("127.0.0.1", 63462);
 
     std::string message;
     while (1)
     {
         std::cin >> message;
-        socket.sendMessage(message);
+        if(sock.sendMessage(message))
+        std::cout << "Message send successful\n";
+        std::cout << "Server message: " << sock.receiveMessage() << std::endl;
         if (message == "exit")
         {
-            socket.closeSocket();
+            sock.sendMessage("exit");
+            sock.closeSocket();
             break;
         }
         
     }
-    socket.closeSocket();
+    sock.closeSocket();
 
 
 

@@ -12,11 +12,12 @@ class SocketHandler
         SocketHandler();
         ~SocketHandler();
         bool setupConnect();
-        bool clientConnect();
+        int clientConnect();
         std::string receiveMessage();
-        void SendMessage(std::string message);
+        void SendMessage(std::string& message);
     
     private:
-        int _server_fd, _client_fd;
+        int _sock_fd, _listener_fd;
         struct sockaddr_in _serverAddr;
+        const size_t _BUFFER_SIZE = 1024;
 };

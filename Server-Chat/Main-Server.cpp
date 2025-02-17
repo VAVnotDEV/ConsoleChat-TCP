@@ -2,17 +2,18 @@
 
 
 
-
 auto main() -> int
 {   
     SocketHandler sock;
     sock.setupConnect();
     sock.clientConnect();
     std::string message;
-while(sock.clientConnect())
+    
+while(1)
 {
     message = sock.receiveMessage();
-    std::cout << message;
+    std::cout << message << std::endl;
+    sock.SendMessage(message);
     if (message == "command_addUser")
     {
         std::cout << "AddUser\n";
@@ -20,10 +21,6 @@ while(sock.clientConnect())
     else if (message == "command_authUser")
     {
         std::cout << "authUser\n";
-    }
-    else
-    {
-        std::cout << message;
     }
 }
     return 0;
