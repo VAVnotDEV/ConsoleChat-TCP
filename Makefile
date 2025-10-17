@@ -1,7 +1,6 @@
 all: Chat-server Chat-client
 
-Chat-server: server/server.cpp
-	g++ server/server.cpp -o Chat-server
-
-Chat-client: client/client.cpp
-	g++ client/client.cpp -o Chat-client
+Chat-server: server/Main.cpp
+	g++ -o server-chat server/Main.cpp server/Message.h server/User.cpp server/ChatServer.cpp
+Chat-client: client/Main.cpp
+	g++ -o client-chat client/Main.cpp client/ChatClient.cpp
