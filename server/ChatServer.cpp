@@ -1,5 +1,43 @@
 ﻿#include "ChatServer.h"
 
+//CCD
+void Chat::ChatCommandData::DataClear()
+{
+	cmd.clear();
+	log.clear();
+	login.clear();
+	password.clear();
+	to.clear();
+	from.clear();
+	textMessage.clear();
+}
+
+void Chat::ChatCommandData::showData()
+{
+			
+	if(!cmd.empty())
+		std::cout << "CMD: " << cmd << std::endl;
+	
+		if(!log.empty())
+		std::cout << "Log: " << log << std::endl;
+
+	if(!login.empty())
+		std::cout << "Login: " << login << std::endl;
+	
+	if(!password.empty())
+		std::cout << "Password: " << password << std::endl;
+	
+	if(!to.empty())
+		std::cout << "To: " << to << std::endl;
+	
+	if(!from.empty())
+		std::cout << "From: " << from << std::endl;
+	
+	if(!textMessage.empty())
+		std::cout << "TextMessage: " << textMessage << std::endl;
+}
+
+//CHAT
 Chat::Chat() : socket_file_descriptor(-1), bind_status(-1), connection_status(-1) {}
 
 Chat::~Chat()
@@ -65,59 +103,66 @@ int Chat::acceptClient()
 }
 
 //Регистрация пользователя
-bool Chat::addUser(const User& user)
+void Chat::addUser(const User& user)
 {
-	for (const User& u : _user)
-		if (!validateUser(user))
-		{
-			std::cout << "Имя занято, повторите" << std::endl;
-
-			return false;
-		}
-
 	std::cout << "Пользователь успешно добавлен" << std::endl;
-
 	_user.push_back(user);
-
-	return true;
+	return;
 }
 //Авторизация
-bool Chat::loginUser(const std::string& name, const std::string& password) 
+bool Chat::loginUser(ChatCommandData& ccd) 
 {
-	if (validateUser(name, password))
+	if (validateUser(ccd.login, ccd.password))
+	{	ccd.log = "1";
 		return true;
-
-	std::cout << "\nОшибка авторизации (неверный логин или  пароль)\n";
+	}
+	std::cout << "\nServerLog:Ошибка авторизации (неверный логин или  пароль)\n";
+	
+	ccd.log = "0";
 	return false;
+
 }
 //Список контактов
-void Chat::listUsers(const std::string& name) 
+// void Chat::listUsers(const std::string& name) 
+// {
+// 	std::cout << "\nСписок контактов: " << std::endl;
+// 	int count = 0;
+// 	for(const User& u : _user)
+// 	{
+// 		if (u.getName() == name)
+// 			continue;
+// 		count++;
+// 		std::cout << count << " - " << u.getName() << std::endl;
+// 	}
+// 	std::cout << std::endl;
+// }
+void Chat::listUsers(int clientSock, ChatCommandData& ccd) 
 {
-	std::cout << "\nСписок контактов: " << std::endl;
-	int count = 0;
 	for(const User& u : _user)
 	{
-		if (u.getName() == name)
+		if (u.getName() == ccd.login)
 			continue;
-		count++;
-		std::cout << count << " - " << u.getName() << std::endl;
+		ccd.to = u.getName();
+		sendData(clientSock, ccd);
 	}
-	std::cout << std::endl;
+	ccd.cmd = "CMD_STOP";
 }
 
 //Отправка конкретному пользователю
-bool Chat::sendMessage(const std::string& from, const std::string& to, const std::string& text)
+//bool Chat::sendMessage(const std::string& from, const std::string& to, const std::string& text)
+bool Chat::sendMessage(ChatCommandData& ccd)
 {
-	if (text == "exit")
-	{
-		return false;
-	}
+	// if (text == "exit")
+	// {
+	// 	return false;
+	// }
 
 	for (const User& u : _user)
 	{
-		if (u.getName() == to)
+		if (u.getName() == ccd.to)
 		{
-			_textMessages.emplace_back(from, to, text);
+			_textMessages.emplace_back(ccd.from, ccd.to, ccd.textMessage);
+			std::cout << "Сообщение доставлено!\n";
 			return true;
 		}
 	}
@@ -126,17 +171,18 @@ bool Chat::sendMessage(const std::string& from, const std::string& to, const std
 	return false;
 }
 //Рассылка
-void Chat::sendAllMessage(const std::string& from, const std::string& text)
+//void Chat::sendAllMessage(const std::string& from, const std::string& text)
+void Chat::sendAllMessage(ChatCommandData& ccd)
 {
-	if (text == "exit")
-		return;
+	// if (text == "exit")
+	// 	return;
 	
 	for (const User& u : _user)
 	{
-		if (u.getName() == from)
+		if (u.getName() == ccd.from)
 			continue;
 
-		_textMessages.emplace_back(from, u.getName(), text);
+		_textMessages.emplace_back(ccd.from, u.getName(), ccd.textMessage);
 	}
 }
 
@@ -170,118 +216,147 @@ bool Chat::validateUser(const User& user) const
 	return true;
 }
 
-bool Chat::recvData(int& clientSock)
+bool Chat::recvData(int clientSock, ChatCommandData& ccd)
 {
+	std::cout << "call recvData\n";
 	char buf[MESSAGE_LENGTH];
 	int n = recv(clientSock, buf, sizeof(buf),0);
 	if (n <= 0) 
 	{
-		std::cout << "Recv failed\n";
+		std::cout << "Disconnect\n";
 		return false;
 	}
-	//передать дальше в обработчик
-	std::cout << buf;
-	//inputDataHandler(buf, n);
+	inputDataHandler(buf, n, ccd);
+	ccd.showData();
 	return true;
 }
 
-bool Chat::sendData(int clientSock, char* buf, int length)
+bool Chat::sendData(int clientSock, ChatCommandData& ccd)
 {
-	ssize_t n = send(clientSock, buf, length, 0);
+	std::cout << "call sendData\n";
+	char buf[MESSAGE_LENGTH];
+	outputDataHandler(ccd, buf);
+	ssize_t n = send(clientSock, buf, MESSAGE_LENGTH, 0);
+	if(n < 0)
+		return false;
+	ccd.showData();
+	ccd.DataClear();
+	
 	return true;
 }
 
-void Chat::inputDataHandler(char* buf, int length)
+void Chat::inputDataHandler(char* ch1, int n, ChatCommandData& ccd)
 {
-	//std::cout << "CMD: " << cmd << " Login: " << login << " Password: " << password << std::endl;   
+	//CMD:LOG:LOGIN:PASSWORD:TO:FROM:TEXTMESSAGE
+	int count = 0;
+	char sp = ':';
+
+	for (int i = 0; i < n; i++)
+	{
+		if(ch1[i] == sp && count < 6)
+		{
+			count++;
+			continue;
+		}
+		if(count == 0)
+			ccd.cmd.push_back(ch1[i]);
+		if(count == 1)
+			ccd.log.push_back(ch1[i]);
+		if(count == 2)
+			ccd.login.push_back(ch1[i]);
+		if(count == 3)
+			ccd.password.push_back(ch1[i]);
+		if(count == 4)
+			ccd.to.push_back(ch1[i]);
+		if (count == 5)
+			ccd.from.push_back(ch1[i]);
+		if(count == 6)
+			ccd.textMessage.push_back(ch1[i]);
+	}
+		
+}
+
+void Chat::outputDataHandler(ChatCommandData& ccd, char* ch1)
+{
+	//CMD:LOG:LOGIN:PASSWORD:TO:FROM:TEXTMESSAGE
+	bzero(ch1, MESSAGE_LENGTH);
+	char sp = ':';
+	std::string fullData = ccd.cmd + sp + ccd.log + sp + ccd.login + sp + ccd.password + sp + ccd.to + sp + ccd.from + sp + ccd.textMessage;
+	strcpy(ch1, fullData.c_str());
+	ch1[fullData.size()] = '\0';
 }
 
 void Chat::mainLoop()
 {
-	if(!initSocket())
-	{
-		std::cout << "Error: initSocket\n";
-		return;
-	}
+	User u1("VAV", "qwe");
+	User u2("DEN", "qwe");
+	User u3("Vasya", "qwe");
 
-	char buf[MESSAGE_LENGTH];
- 	std::string cmd, login, password, to, recieve, message;
-	
+	addUser(u1);
+	addUser(u2);
+	addUser(u3);
+
+	if(!initSocket())
+		return;
+
+	ChatCommandData ccd;
+
 	while(true)
 	{
 		int client_fd = acceptClient();
 		if (client_fd < 0) continue;
-
+		
 		while(true)
 		{
-			int n = recv(client_fd, buf, MESSAGE_LENGTH - 1, 0);
-			if(n <=0)
-			{
-				std::cout << "RECV Failed\n"; 
-				close(client_fd);
-				break;
-			}
-			buf[n] = '\0';
-
-			int count = 0;
-			//обработка буфера
-			for (int i = 0; i < n; ++i)
-			{
-				if(buf[i] == ':')
+			if(!recvData(client_fd, ccd))
+			break;
+			//Регистрация
+			if (ccd.cmd == "ADD_USER")
+			{  
+				User* u = new User(ccd.login, ccd.password);
+				if(validateUser(*u))
 				{
-					count++;
-					continue;
-				} 
-				else if(buf[i] == '\r' || buf[i] == '\n' || buf[i] == '\0')
-				{
-					continue;
-				}       
-				else if(count == 0)
-					cmd.push_back(buf[i]);
-					
-				else if(count ==1)
-					login.push_back(buf[i]);
-				
-				else if(count ==2)
-					password.push_back(buf[i]);     
-			}
-
-				if (cmd == "add_user")
-				{
-					std::cout << "REGISTER\n";   
-					// User* u = new User(login, password);
-					// addUser(*u);
-					cmd.clear();
-					continue;
+					addUser(*u);
+					ccd.log = "1";
 				}
-				else if (cmd == "CMD_LOGIN")
+				else
 				{
-					std::cout << "Login\n";
-					//if(loginUser(login, password))
-					continue;
-
+					std::cout << "Имя занято\n";
+					ccd.log = "0";
 				}
-				else if(cmd == "CMD_SEND_DATA")
-				{	
-					std::cout << "Send\n";
-					//отправка
-					continue;
-				}
-				else if (cmd == "CMD_RECV_DATA")
-				{
-					//получение
-					continue;
-				}
-				else 
+				sendData(client_fd, ccd);			
 				continue;
+			}
+			//Авторизация
+			else if (ccd.cmd == "AUTH_USER")
+			{
+				bool auth = loginUser(ccd);
+				sendData(client_fd, ccd);
 
-			
-			std::cout << cmd << " " << login << " " << password << std::endl;
-			
+				if(auth)
+					listUsers(client_fd, ccd);
+				
+					sendData(client_fd, ccd);
+				continue;
+			}
+			else if(ccd.cmd == "SEND_MESSAGE")
+			{	
+				std::cout << "Send\n";
+				sendMessage(ccd);
+				continue;
+			}
+			else if (ccd.cmd == "CMD_RECV_DATA")
+			{
+				//получение
+				continue;
+			}
+			//else 
+		// 	continue;
+		
 		}
+		break;
 	}
 }
-	
 
 	
 
