@@ -1,0 +1,7 @@
+*
+!*.cpp
+!*.h
+!client/
+!server/
+!.gitignore
+!README.md

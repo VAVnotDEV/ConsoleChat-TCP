@@ -41,7 +41,11 @@ public:
 
     bool AuthUser();
     bool userRegister();
-    void listUser();
+    void getListUser();
+    void showListUser();
+    void sendMessage();
+    void recvMessageFrom();
+    
     void mainLoop();
 
 
@@ -53,11 +57,14 @@ private:
         LOGOUT = 8, 
         EXIT = 9 };
 
+    ChatCommandData ccd;
     std::string currentUser;
     std::vector<std::string>to;
+
+
     int choise;    
 	int socket_file_descriptor, connection, bytes_read;
 	struct sockaddr_in serveraddress, client;
-    ChatCommandData ccd;
+    
 };
 

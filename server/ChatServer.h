@@ -49,6 +49,7 @@ public:
 	
 	//Chat Logic
 	//Добавить пользователя
+	void addUser(ChatCommandData& ccd); 
 	void addUser(const User& user); 
 	//Авторизация пользователя
 	bool loginUser(ChatCommandData& ccd);
@@ -56,17 +57,18 @@ public:
 	//void listUsers(const std::string& name);
 	void listUsers(int clientSock, ChatCommandData& ccd);
 	//Отправка сообщения
-	//bool sendMessage(const std::string& from, const std::string& to, const std::string& text);
-	bool sendMessage(ChatCommandData& ccd);
+	bool recvMessageToServer(ChatCommandData& ccd);
+	void sendMessageToClient(ChatCommandData& ccd);
+	
 	//Отправка сообщения всем
 	void sendAllMessage(ChatCommandData& ccd);
 	//Вывод сообшений
 	void displayAllMessages(const std::string& from, const std::string& to) const;
 	//Выбор адресата
-	std::string getContact(const int index) const;
+	//std::string getContact(const int index) const;
 	//Проверка на совпадения логина и пароля
-	bool validateUser(const std::string& name, const std::string& password) const;
-	bool validateUser(const User& user) const;
+	bool validateAuthUser(const std::string& name, const std::string& password) const;
+	bool validateAddUser(std::string& login, std::string& log) const;
 	
 	void mainLoop();
 
