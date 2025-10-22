@@ -60,6 +60,7 @@ private:
     ChatCommandData ccd;
     std::string currentUser;
     std::vector<std::string>to;
+    std::string currentCMD;
 
 
     int choise;    

@@ -107,7 +107,7 @@ bool ChatClient::recvData()
 //Chat logic
 bool ChatClient::AuthUser()
 {
-	ccd.cmd = "AUTH_USER";
+	ccd.cmd = currentCMD;
 	std::cout << "\n\t/ * * Авторизация * */ \n" << "Введите логин: "; std::cin >> ccd.login;
 	std::cout << "Введите пароль: "; std::cin >> ccd.password;
 	sendData();
@@ -209,20 +209,11 @@ void ChatClient::showListUser()
 
 void ChatClient::sendMessage()
 {
-	std::string currentTo = to.at(choise);
-	
-	if(ccd.log == "FROM_ALL")
-		ccd.to = "all";
-	
-	else ccd.to = currentTo;
-	ccd.from = currentUser;
-
 	while (true)
 	{
-		ccd.cmd = "SEND_MESSAGE";
 		std::cin.ignore();
 		std::cout << "Сообщение (для выхода введите exit): "; std::cin >> ccd.textMessage;
-		
+		ccd.cmd = currentCMD;
 		if(ccd.textMessage == "exit")
 			break;
 		else
@@ -237,7 +228,7 @@ void ChatClient::sendMessage()
 void ChatClient::recvMessageFrom()
 {
 	ccd.to = currentUser;
-	ccd.cmd = "RECV_MESSAGE";
+	ccd.cmd = currentCMD;
 	//ccd.from = currentTo;
 	sendData();
 	recvData();
@@ -274,7 +265,7 @@ void ChatClient::mainLoop()
 
 		//Авторизация
 		case LOGIN:
-
+			currentCMD = "AUTH_USER";
 			//Сессия пользователя
 			if (AuthUser())
 			{
@@ -290,6 +281,8 @@ void ChatClient::mainLoop()
 					
 					
 					showListUser();
+					ccd.from = currentUser;
+
 					std::cout << SEND_ALL << ".Отправить всем\n" << 
 								LOGOUT << ".Выход\n" << 
 								"\nВыберите команду: ";  
@@ -300,19 +293,23 @@ void ChatClient::mainLoop()
 
 					if (choise == SEND_ALL)		//Рассылка
 					{
-						//ccd.log = "FROM_ALL";
-						sendMessage();
+						ccd.to.clear();
+						currentCMD = "RECV_ALL";
 					}
 					else if (choise == LOGOUT)	//Выход пользователя
 					{
 						break;
-					}						
-					//Отправка сообщения
-					else
-					{	
-						recvMessageFrom();
-						sendMessage();
 					}
+					else
+					{						
+						std::string currentTo = to.at(choise);
+						ccd.to = currentTo;
+						currentCMD = "RECV_MESSAGE";
+						recvMessageFrom();
+					}
+					
+					std::cout << ccd.cmd << std::endl;
+					sendMessage();
 				}
 
 					break;

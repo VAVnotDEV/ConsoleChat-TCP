@@ -61,7 +61,7 @@ public:
 	void sendMessageToClient(ChatCommandData& ccd);
 	
 	//Отправка сообщения всем
-	void sendAllMessage(ChatCommandData& ccd);
+	void recvMessageFromAll(ChatCommandData& ccd);
 	//Вывод сообшений
 	void displayAllMessages(const std::string& from, const std::string& to) const;
 	//Выбор адресата

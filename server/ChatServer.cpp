@@ -148,23 +148,15 @@ void Chat::listUsers(int clientSock, ChatCommandData& ccd)
 //Получение сообщения на сервер
 bool Chat::recvMessageToServer(ChatCommandData& ccd)
 {
-	if (ccd.to == "all")
-	{
-		for (const User& u : _user)
-			_textMessages.emplace_back(ccd.from, ccd.to, ccd.textMessage);
-
-			return true;
-	}
-	else
-		for (const User& u : _user)
+	for (const User& u : _user)
+		if (u.getName() == ccd.to)
 		{
-			if (u.getName() == ccd.to)
-			{
-				_textMessages.emplace_back(ccd.from, ccd.to, ccd.textMessage);
-				std::cout << "Сообщение принято на сервер!\n";
-				return true;
-			}
+			_textMessages.emplace_back(ccd.from, ccd.to, ccd.textMessage);
+			std::cout << "Сообщение принято на сервер!\n";
+			return true;
 		}
+		
+	
 	std::cout << "Собщение не принято на сервер" << std::endl;
 	return false;
 }
@@ -181,26 +173,25 @@ void Chat::sendMessageToClient(ChatCommandData& ccd)
 }
 
 //Рассылка
-void Chat::sendAllMessage(ChatCommandData& ccd)
-{
-	// if (text == "exit")
-	// 	return;
-	
+void Chat::recvMessageFromAll(ChatCommandData& ccd)
+{		
 	for (const User& u : _user)
 	{
 		if (u.getName() == ccd.from)
 			continue;
-
-		_textMessages.emplace_back(ccd.from, u.getName(), ccd.textMessage);
+		
+			_textMessages.emplace_back(ccd.from, u.getName(), ccd.textMessage);
 	}
+	
+	std::cout << "Сообщение отправлено всем!" << std::endl;
 }
 
-void Chat::displayAllMessages(const std::string& from, const std::string& to) const
-{
-	for(const Message<std::string>& m : _textMessages)
-		if ((from == m.getFrom() && to == m.getTo()) || (from == m.getTo() && to == m.getFrom()))
-			std::cout << "От: " << m.getFrom() << " Сообщение: " << m.getMessage() << std::endl;
-}
+// void Chat::displayAllMessages(const std::string& from, const std::string& to) const
+// {
+// 	for(const Message<std::string>& m : _textMessages)
+// 		if ((from == m.getFrom() && to == m.getTo()) || (from == m.getTo() && to == m.getFrom()))
+// 			std::cout << "От: " << m.getFrom() << " Сообщение: " << m.getMessage() << std::endl;
+// }
 
 // std::string Chat::getContact(const int index) const
 // {
@@ -232,6 +223,7 @@ bool Chat::validateAddUser(std::string& login, std::string& log) const
 
 bool Chat::recvData(int clientSock, ChatCommandData& ccd)
 {
+	std::cout << "Call recvData" << std::endl; 
 	char buf[MESSAGE_LENGTH];
 	int n = recv(clientSock, buf, sizeof(buf),0);
 	if (n <= 0) 
@@ -246,6 +238,7 @@ bool Chat::recvData(int clientSock, ChatCommandData& ccd)
 
 bool Chat::sendData(int clientSock, ChatCommandData& ccd)
 {
+	std::cout << "Call sendData" << std::endl; 
 	char buf[MESSAGE_LENGTH];
 	outputDataHandler(ccd, buf);
 	ssize_t n = send(clientSock, buf, MESSAGE_LENGTH, 0);
@@ -301,14 +294,14 @@ void Chat::mainLoop()
 {
 	User u1("VAV", "qwe");
 	User u2("DEN", "qwe");
-	User u3("Vasya", "qwe");
+	User u3("Tom", "qwe");
 
 	addUser(u1);
 	addUser(u2);
 	addUser(u3);
 
 	_textMessages.emplace_back("DEN", "VAV", "seample Text message DEN to VAV");
-	_textMessages.emplace_back("DEN", "VAV", "2seample Text message DEN to VAV");
+	_textMessages.emplace_back("DEN", "VAV", "seample Text message DEN to VAV");
 
 	if(!initSocket())
 		return;
@@ -324,7 +317,8 @@ void Chat::mainLoop()
 		{
 			if(!recvData(client_fd, ccd))
 				break;
-			
+			std::cout << "Begin" << std::endl;
+			ccd.showData();
 			//Регистрация
 			if (ccd.cmd == "ADD_USER")
 			{  
@@ -359,11 +353,18 @@ void Chat::mainLoop()
 				recvMessageToServer(ccd);
 				continue;
 			}
-			//Отправка или рассылка
+			//Отправка
 			else if (ccd.cmd == "RECV_MESSAGE")
 			{
 				//recvData(client_fd, ccd);
 				sendMessageToClient(ccd);
+				sendData(client_fd, ccd);
+				continue;
+			}
+			else if(ccd.cmd == "RECV_ALL")
+			{
+				ccd.showData();
+				recvMessageFromAll(ccd);
 				sendData(client_fd, ccd);
 				continue;
 			}
