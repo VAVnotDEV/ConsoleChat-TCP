@@ -47,7 +47,7 @@ void DataExchangeProtocol::outputDataHandler(char* ch1)
 
 void DataExchangeProtocol::showData()
 {
-			
+			std::cout << "*****DEP BEGIN*****\n";
 			if(!cmd.empty())
 				std::cout << "CMD: " << cmd << std::endl;
 			
@@ -68,6 +68,7 @@ void DataExchangeProtocol::showData()
 			
 			if(!textMessage.empty())
 				std::cout << "TextMessage: " << textMessage << std::endl;
+				std::cout << "*****DEP_END*****\n";
 }
 
 void DataExchangeProtocol::DataClear()

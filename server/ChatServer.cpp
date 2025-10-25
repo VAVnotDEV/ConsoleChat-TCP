@@ -148,52 +148,47 @@ bool Chat::recvMessageToServer(DataExchangeProtocol& dep)
 		{
 			_textMessages.emplace_back(dep.from, dep.to, dep.textMessage);
 			std::cout << "Сообщение принято на сервер!\n";
+			//воткнуть сюда отправку
 			return true;
 		}
-		
-	
+
 	std::cout << "Собщение не принято на сервер" << std::endl;
 	return false;
 }
 
+//Отправка всех сообщений клиенту после авторизации
 void Chat::sendAllMessageToClient(int client_fd, DataExchangeProtocol& dep)
 {
 	if(dep.textMessage == "exit")
 		return;
-
-	for(const Message<std::string>& m : _textMessages)
-		if(dep.to == m.getTo())
-		{
-			dep.textMessage = m.getMessage();
-			dep.from = m.getFrom();
-			sendData(client_fd, dep);
-			std::cout << "Сообщение отпрвлено клиенту\n";
-			dep.showData();
-		}
-
-	sendData(client_fd, dep);
 	
-}
-
-void Chat::sendMessageToClient(int client_fd, DataExchangeProtocol& dep)
-{
-	if(dep.textMessage == "exit")
-		return;
-
 	for(const Message<std::string>& m : _textMessages)
-		if(dep.to == m.getTo() || dep.to == m.getFrom())
+		if(dep.login == m.getTo() || dep.login == m.getFrom())
 		{
 			dep.textMessage = m.getMessage();
 			dep.from = m.getFrom();
+			dep.to = m.getTo();
 			sendData(client_fd, dep);
-			std::cout << "Сообщение отпрвлено клиенту\n";
-			dep.showData();
 		}
 
 	dep.DataClear();
 	dep.cmd = "END";
 	sendData(client_fd, dep);
 	
+}
+
+void Chat::sendMessageToClient(int client_fd, DataExchangeProtocol& dep)
+{
+	std::cout << "Отправка последнего сообщения\n";
+	for(const Message<std::string>& m : _textMessages)
+		if(dep.to == m.getTo())
+		{
+			dep.textMessage = m.getMessage();
+			dep.from = m.getFrom();
+			
+		}
+		sendData(client_fd, dep);
+
 }
 
 //Рассылка
@@ -257,7 +252,9 @@ void Chat::mainLoop()
 	_textMessages.emplace_back("DEN", "VAV", "Привет, как дела?");
 	_textMessages.emplace_back("VAV", "DEN", "Отлично. Твои как?");
 	_textMessages.emplace_back("DEN", "VAV", "Тоже хорошо, чем занят?");
-	_textMessages.emplace_back("VAV", "DEN", "Пытаюсь не ёбнуться!");
+	_textMessages.emplace_back("VAV", "DEN", "Учу программирование!");
+	_textMessages.emplace_back("Tom", "VAV", "Пошли в бар!");
+	_textMessages.emplace_back("VAV", "Tom", "Нет, я учу C++");
 
 	if(!initSocket())
 		return;
@@ -273,7 +270,6 @@ void Chat::mainLoop()
 		{
 			if(!recvData(client_fd, dep))			
 					break;
-			dep.showData();
 			//Регистрация
 			if (dep.cmd == "ADD_USER")
 			{  
@@ -305,6 +301,11 @@ void Chat::mainLoop()
 				sendMessageToClient(client_fd, dep);
 				continue;
 			}
+			else if (dep.cmd == "RAM")
+			{
+				sendAllMessageToClient(client_fd, dep);
+				continue;
+			}
 			else if(dep.cmd == "SEND_ALL")
 			{
 				recvMessageFromAll(dep);
@@ -319,7 +320,7 @@ void Chat::mainLoop()
 			
 		}
 		
-		break;
+		//break;
 	}
 }
 

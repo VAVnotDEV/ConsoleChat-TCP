@@ -76,19 +76,15 @@ bool ChatClient::AuthUser()
 	std::cout << "\n\t/ * * Авторизация * */ \n" << "Введите логин: "; std::cin >> _dep.login;
 	std::cout << "Введите пароль: "; std::cin >> _dep.password;
 	_currentUser = _dep.login;
-	_dep.showData();
 	sendData();
 	recvData();
 
 	if(_dep.log == "ok")
 	{
-		// if(bGetListUsers)
-		// {
 			_dep.login = _currentUser;
-			//bGetListUsers = false;
 			getListUser();
+			//_dep.DataClear();
 			recvAllMessageFrom();
-		//}
 		return true;
 	}
 	
@@ -122,15 +118,15 @@ void ChatClient::getListUser()
 	while(_dep.cmd != "CMD_STOP")
 	{
 		recvData();
-		_to.push_back(_dep.to);
+		_contacts.push_back(_dep.to);
 	}
 }
 
 void ChatClient::showListUser()
 {
-	if(!_to.empty())
-		for (int i = 0; i < _to.size() - 1; i++)
-			std::cout << i << "." << _to.at(i) << std::endl;
+	if(!_contacts.empty())
+		for (int i = 0; i < _contacts.size() - 1; i++)
+			std::cout << i << "." << _contacts.at(i) << std::endl;
 }
 
 void ChatClient::sendMessage()
@@ -141,7 +137,7 @@ void ChatClient::sendMessage()
 		//std::cin.ignore();
 		std::cout << "Сообщение (для выхода введите exit) \n" << _currentUser << ": "; std::cin >> _dep.textMessage;
 		_dep.cmd = _currentCMD;
-		
+		_dep.from = _currentUser;
 		if(_dep.textMessage == "exit")
 		{
 			break;
@@ -163,39 +159,39 @@ void ChatClient::recvMessageFrom()
 	sendData();
 	recvData();
 	_messages.emplace_back(_dep.from, _dep.to, _dep.textMessage);
-	std::cout << _dep.from << ": " << _dep.textMessage << std::endl; 
-
 }
 
 void ChatClient::recvAllMessageFrom()
 {
-	_currentCMD = "RECV_MESSAGE";
-	_dep.to = _currentUser;
+	_currentCMD = "RAM";
 	_dep.cmd = _currentCMD;
 	sendData();
 	
 	while(_dep.cmd != "END")
-	{	
+	{
 		recvData();
 		_messages.emplace_back(_dep.from, _dep.to, _dep.textMessage);
-		//std::cout << ccd.from << ": " << ccd.textMessage << std::endl; 
 	}
-
-
-
 }
 
 void ChatClient::showAllMessages()
-{		
+{	
 	if(!_messages.empty())
 		for(const Message<std::string>& m : _messages)
-		std::cout << m.getFrom() << ": " << m.getMessage() << std::endl;
+			if((m.getFrom() == _dep.to && m.getTo() == _currentUser) || (m.getFrom() == _currentUser && m.getTo() == _dep.to))
+			{
+				if(m.getFrom() == _currentUser)
+					std::cout << "\t\t\t"<<  m.getMessage() << " :" << m.getFrom() << std::endl;
+					
+				else
+					std::cout << m.getFrom() << ": " << m.getMessage() << std::endl;
+			}
 }
 void ChatClient::resetState()
 {
 	_currentCMD.clear();
 	_currentUser.clear();
-	_to.clear();
+	_contacts.clear();
 	_bGetListUsers = true;
 	_dep.DataClear();
 	_messages.clear();
@@ -206,7 +202,7 @@ void ChatClient::mainLoop()
 	if(!SetupConnection())
 		return;
 
-    while (_choise != EXIT)
+	 while (_choise != EXIT)
 	{
 		_dep.DataClear();
 		std::cout << "\n\t****Консольный чат****\n" << 
@@ -238,7 +234,7 @@ void ChatClient::mainLoop()
 					std::cout << "\nЗдравствуйте, " << _currentUser << "!\n" << "Выберите контакт или действие\n";
 				
 					showListUser();
-					showAllMessages();
+					
 
 					std::cout << SEND_ALL << ".Отправить всем\n" << 
 								LOGOUT << ".Выход\n" << 
@@ -264,15 +260,12 @@ void ChatClient::mainLoop()
 					}
 					else
 					{						
-						std::string currentTo = _to.at(_choise);
-						_dep.to = currentTo;
-						//recvAllMessageFrom();
-						//sendMessage();
-						
+						std::string currentContacts = _contacts.at(_choise);
+						_dep.to = currentContacts;
+						showAllMessages();
+						sendMessage();
 						continue;
 					}
-					
-					
 				}
 
 					break;

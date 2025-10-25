@@ -48,7 +48,7 @@ private:
     std::string _currentUser;
     
     std::vector<Message<std::string>>_messages;
-    std::vector<std::string>_to;
+    std::vector<std::string>_contacts;
     
     std::string _currentCMD;
     bool _bGetListUsers = true;
