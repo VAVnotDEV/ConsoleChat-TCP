@@ -1,6 +1,7 @@
 ﻿#pragma once
-#include "Message.h"
-#include "User.h"
+#include "../Message.h"
+#include "../DataExchangeProtocol.h"
+//#include "User.h"
 #include <vector>
 #include <sys/socket.h>
 #include <arpa/inet.h>
@@ -17,22 +18,6 @@
 class Chat
 {
 
-private:
-	struct ChatCommandData
-	{	
-		//CMD:LOG:LOGIN:PASSWORD:TO:FROM:TEXTMESSAGE
-		std::string cmd;
-		std::string log;
-		std::string login;
-		std::string password;
-		std::string to;
-		std::string from;
-		std::string textMessage;	
-
-		void DataClear();
-		void showData();
-	};
-
 public:
 
 	Chat();
@@ -40,28 +25,25 @@ public:
 	//Inet Logic
 	bool initSocket();
 	int acceptClient();
-	bool recvData(int clientSock, ChatCommandData& ccd);
-	bool sendData(int clientSock, ChatCommandData& ccd);
-	
-	
-	void inputDataHandler(char* ch1, int n, ChatCommandData& ccd);
-	void outputDataHandler(ChatCommandData& ccd, char* ch1);
+	bool recvData(int client_fd, DataExchangeProtocol& dep);
+	bool sendData(int client_fd, DataExchangeProtocol& dep);
 	
 	//Chat Logic
 	//Добавить пользователя
-	void addUser(ChatCommandData& ccd); 
+	void addUser(DataExchangeProtocol& dep); 
 	void addUser(const User& user); 
 	//Авторизация пользователя
-	bool loginUser(ChatCommandData& ccd);
+	bool loginUser(int client_fd, DataExchangeProtocol& dep);
 	//Список пользователей
 	//void listUsers(const std::string& name);
-	void listUsers(int clientSock, ChatCommandData& ccd);
+	void listUsers(int client_fd, DataExchangeProtocol& dep, std::string& userName);
 	//Отправка сообщения
-	bool recvMessageToServer(ChatCommandData& ccd);
-	void sendMessageToClient(ChatCommandData& ccd);
+	bool recvMessageToServer(DataExchangeProtocol& dep);
+	void sendMessageToClient(int client_fd, DataExchangeProtocol& dep);
+	void sendAllMessageToClient(int client_fd, DataExchangeProtocol& dep);
 	
 	//Отправка сообщения всем
-	void recvMessageFromAll(ChatCommandData& ccd);
+	void recvMessageFromAll(DataExchangeProtocol& dep);
 	//Вывод сообшений
 	void displayAllMessages(const std::string& from, const std::string& to) const;
 	//Выбор адресата
@@ -80,9 +62,5 @@ private:
 	std::vector<Message<std::string>>_textMessages;
 	struct sockaddr_in serveraddress;
     int socket_file_descriptor, bind_status, connection_status;
-
-
-
-
 };
 

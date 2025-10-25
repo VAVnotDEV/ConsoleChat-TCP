@@ -1,74 +1,38 @@
 #include "ChatClient.h"
 #include <limits>
 
-//CCD
-void ChatClient::ChatCommandData::showData()
-{
-			
-			if(!cmd.empty())
-				std::cout << "CMD: " << cmd << std::endl;
-			
-				if(!log.empty())
-				std::cout << "Log: " << log << std::endl;
-
-			if(!login.empty())
-				std::cout << "Login: " << login << std::endl;
-			
-			if(!password.empty())
-				std::cout << "Password: " << password << std::endl;
-			
-			if(!to.empty())
-				std::cout << "To: " << to << std::endl;
-			
-			if(!from.empty())
-				std::cout << "From: " << from << std::endl;
-			
-			if(!textMessage.empty())
-				std::cout << "TextMessage: " << textMessage << std::endl;
-}
-
-void ChatClient::ChatCommandData::DataClear()
-{
-	cmd.clear();
-	log.clear();
-	login.clear();
-	password.clear();
-	to.clear();
-	from.clear();
-	textMessage.clear();
-}
 
 //Constructors
-ChatClient::ChatClient() : socket_file_descriptor(-1), connection(-1), bytes_read(-1) { }
+ChatClient::ChatClient() : _socket_file_descriptor(-1), _connection(-1), _bytes_read(-1) { }
 
 ChatClient::~ChatClient()
 {
-	if(socket_file_descriptor < 0)
+	if(_socket_file_descriptor >= 0)
 	{
-		close(socket_file_descriptor);
-		socket_file_descriptor = -1;
-		connection = -1;
-		bytes_read = -1;
+		close(_socket_file_descriptor);
+		_socket_file_descriptor = -1;
+		_connection = -1;
+		_bytes_read = -1;
 	}
 }
 //Socket
 bool ChatClient::SetupConnection()
 {
-	socket_file_descriptor = socket(AF_INET, SOCK_STREAM, 0);
+	_socket_file_descriptor = socket(AF_INET, SOCK_STREAM, 0);
 
-	if(socket_file_descriptor == -1)
+	if(_socket_file_descriptor == -1)
 	{
 		perror("Socket creation failed failed");  
 		return false;
 	}
 
-	serveraddress.sin_addr.s_addr = inet_addr("127.0.0.1");
-	serveraddress.sin_port = htons(PORT);
-	serveraddress.sin_family = AF_INET;
+	_serveraddress.sin_addr.s_addr = inet_addr("127.0.0.1");
+	_serveraddress.sin_port = htons(PORT);
+	_serveraddress.sin_family = AF_INET;
 
-	connection = connect(socket_file_descriptor, (struct sockaddr*)&serveraddress, sizeof(serveraddress));
+	_connection = connect(_socket_file_descriptor, (struct sockaddr*)&_serveraddress, sizeof(_serveraddress));
 	
-	if(connection == -1)
+	if(_connection == -1)
 	{
 		perror("Connection with the server failed.!");
 		return false;
@@ -80,12 +44,12 @@ bool ChatClient::SetupConnection()
 bool ChatClient::sendData()
 {
 	char buf[MESSAGE_LENGTH];
-	outputDataHandler(buf);
-	ssize_t n = send(socket_file_descriptor, buf, MESSAGE_LENGTH, 0);
+	_dep.outputDataHandler(buf);
+	ssize_t n = send(_socket_file_descriptor, buf, sizeof(buf), 0);
 	if(n < 0)
 		return false;
 	
-	ccd.DataClear();
+	//ccd.DataClear();
 
 	return true;
 }
@@ -93,32 +57,40 @@ bool ChatClient::sendData()
 bool ChatClient::recvData()
 {
 	char buf[MESSAGE_LENGTH];
-	int n = recv(socket_file_descriptor, buf, sizeof(buf),0);
+	int n = recv(_socket_file_descriptor, buf, sizeof(buf),0);
 	if (n <= 0) 
 	{
 		std::cout << "Recv failed\n";
 		return false;
 	}
-	ccd.DataClear();
-	inputDataHandler(buf, n);
+	_dep.DataClear();
+	_dep.inputDataHandler(buf, n);
 	
 	return true;
 }
 //Chat logic
 bool ChatClient::AuthUser()
 {
-	ccd.cmd = currentCMD;
-	std::cout << "\n\t/ * * Авторизация * */ \n" << "Введите логин: "; std::cin >> ccd.login;
-	std::cout << "Введите пароль: "; std::cin >> ccd.password;
+	_dep.cmd = _currentCMD = "AUTH_USER";
+
+	std::cout << "\n\t/ * * Авторизация * */ \n" << "Введите логин: "; std::cin >> _dep.login;
+	std::cout << "Введите пароль: "; std::cin >> _dep.password;
+	_currentUser = _dep.login;
+	_dep.showData();
 	sendData();
 	recvData();
-	if(ccd.log == "1")
+
+	if(_dep.log == "ok")
 	{
-		currentUser = ccd.from = ccd.login;
+		// if(bGetListUsers)
+		// {
+			_dep.login = _currentUser;
+			//bGetListUsers = false;
+			getListUser();
+			recvAllMessageFrom();
+		//}
 		return true;
 	}
-	
-
 	
 	std::cout << "\nОшибка авторизации (неверный логин или  пароль)\n";
 	return false;
@@ -126,16 +98,16 @@ bool ChatClient::AuthUser()
 
 bool ChatClient::userRegister()
 {
-	ccd.cmd = "ADD_USER";
-	std::cout << "\t/ * * Регистрация нового пользователя * */ \n" << "Придумайте логин: "; std::cin >> ccd.login;
+	_dep.cmd = "ADD_USER";
+	std::cout << "\t/ * * Регистрация нового пользователя * */ \n" << "Придумайте логин: "; std::cin >> _dep.login;
 	std::cin.ignore();
-	std::cout << "Придумайте пароль: "; std::getline(std::cin, ccd.password);
+	std::cout << "Придумайте пароль: "; std::getline(std::cin, _dep.password);
 	sendData();
 	recvData();
-	if(ccd.log == "0")
+	if(_dep.log == "0")
 	{
 		system("clear");
-		std::cout << "\nИмя занято! Повторите! " << ccd.log << std::endl;
+		std::cout << "\nИмя занято! Повторите! " << _dep.log << std::endl;
 		return false;
 	}
 				//регистрация пользователя
@@ -145,118 +117,109 @@ bool ChatClient::userRegister()
 	return true;
 }
 
-void ChatClient::inputDataHandler(char* ch1, int n)
-{
-	//CMD:LOG:LOGIN:PASSWORD:TO:FROM:TEXTMESSAGE
-	int count = 0;
-	char sp = ':';
-
-	for (int i = 0; i < n; i++)
-	{
-		if(ch1[i] == sp && count < 6)
-		{
-			count++;
-			continue;
-		}
-		if(count == 0)
-			ccd.cmd.push_back(ch1[i]);
-		if(count == 1)
-			ccd.log.push_back(ch1[i]);
-		if(count == 2)
-			ccd.login.push_back(ch1[i]);
-		if(count == 3)
-			ccd.password.push_back(ch1[i]);
-		if(count == 4)
-			ccd.to.push_back(ch1[i]);
-		if (count == 5)
-			ccd.from.push_back(ch1[i]);
-		if(count == 6)
-			ccd.textMessage.push_back(ch1[i]);
-	}
-	
-}
-
-void ChatClient::outputDataHandler(char* ch1)
-{
-	//CMD:LOG:LOGIN:PASSWORD:TO:FROM:TEXTMESSAGE
-	bzero(ch1, MESSAGE_LENGTH);
-	char sp = ':';
-	std::string fullData = ccd.cmd + sp + ccd.log + sp + ccd.login + sp + ccd.password + sp + ccd.to + sp + ccd.from + sp + ccd.textMessage;
-	strcpy(ch1, fullData.c_str());
-	ch1[fullData.size()] = '\0';
-
-}
-
 void ChatClient::getListUser()
 {
-	while(true)
+	while(_dep.cmd != "CMD_STOP")
 	{
-		if(ccd.cmd == "CMD_STOP")
-		break;
 		recvData();
-		to.push_back(ccd.to);
+		_to.push_back(_dep.to);
 	}
-
-	for (int i = 0; i < to.size() - 1; i++)
-			std::cout << i << "." << to.at(i) << std::endl;
 }
 
 void ChatClient::showListUser()
 {
-		for (int i = 0; i < to.size() - 1; i++)
-			std::cout << i << "." << to.at(i) << std::endl;
+	if(!_to.empty())
+		for (int i = 0; i < _to.size() - 1; i++)
+			std::cout << i << "." << _to.at(i) << std::endl;
 }
 
 void ChatClient::sendMessage()
 {
+	_currentCMD = "SEND_MESSAGE";
 	while (true)
 	{
-		std::cin.ignore();
-		std::cout << "Сообщение (для выхода введите exit): "; std::cin >> ccd.textMessage;
-		ccd.cmd = currentCMD;
-		if(ccd.textMessage == "exit")
-			break;
-		else
+		//std::cin.ignore();
+		std::cout << "Сообщение (для выхода введите exit) \n" << _currentUser << ": "; std::cin >> _dep.textMessage;
+		_dep.cmd = _currentCMD;
+		
+		if(_dep.textMessage == "exit")
 		{
-			std::cout << currentUser << ": " << ccd.textMessage << std::endl;
+			break;
+		}
+			else
+		{
+			//std::cout << currentUser << ": " << ccd.textMessage << std::endl;
 			sendData();
-			ccd.textMessage.clear();
+			_dep.textMessage.clear();
 		}
 	}
 	
 }
 void ChatClient::recvMessageFrom()
 {
-	ccd.to = currentUser;
-	ccd.cmd = currentCMD;
-	//ccd.from = currentTo;
+	_currentCMD = "RECV_MESSAGE";
+	_dep.to = _currentUser;
+	_dep.cmd = _currentCMD;
 	sendData();
 	recvData();
-	std::cout << ccd.from << ": " << ccd.textMessage << std::endl; 
+	_messages.emplace_back(_dep.from, _dep.to, _dep.textMessage);
+	std::cout << _dep.from << ": " << _dep.textMessage << std::endl; 
 
 }
 
+void ChatClient::recvAllMessageFrom()
+{
+	_currentCMD = "RECV_MESSAGE";
+	_dep.to = _currentUser;
+	_dep.cmd = _currentCMD;
+	sendData();
+	
+	while(_dep.cmd != "END")
+	{	
+		recvData();
+		_messages.emplace_back(_dep.from, _dep.to, _dep.textMessage);
+		//std::cout << ccd.from << ": " << ccd.textMessage << std::endl; 
+	}
+
+
+
+}
+
+void ChatClient::showAllMessages()
+{		
+	if(!_messages.empty())
+		for(const Message<std::string>& m : _messages)
+		std::cout << m.getFrom() << ": " << m.getMessage() << std::endl;
+}
+void ChatClient::resetState()
+{
+	_currentCMD.clear();
+	_currentUser.clear();
+	_to.clear();
+	_bGetListUsers = true;
+	_dep.DataClear();
+	_messages.clear();
+	_dep.cmd = "EXIT";
+}
 void ChatClient::mainLoop()
 {
 	if(!SetupConnection())
-	{
-		std::cout << "Error:Setup connection\n";
 		return;
-	}
 
-    while (choise != EXIT)
+    while (_choise != EXIT)
 	{
+		_dep.DataClear();
 		std::cout << "\n\t****Консольный чат****\n" << 
 						REGISTER << ".Регистрация\n" << 
 						LOGIN << ".Вход\n" << 
 						EXIT << ".Выход\n" << 
 						"Введите команду : ";
 
-		std::cin >> choise;
+		std::cin >> _choise;
 		std::cin.clear();
 		std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
 		
-		switch (choise)
+		switch (_choise)
 		{
 			//Регистрация
 		case REGISTER:
@@ -265,51 +228,51 @@ void ChatClient::mainLoop()
 
 		//Авторизация
 		case LOGIN:
-			currentCMD = "AUTH_USER";
 			//Сессия пользователя
 			if (AuthUser())
 			{
-				ccd.login = currentUser;
-				sendData();
-				getListUser();
-
-				while (choise != LOGOUT)
-				{
-					sendData();
-					system("clear");
-					std::cout << "\nЗдравствуйте, " << currentUser << "!\n" << "Выберите контакт или действие\n";
-					
-					
+				while (_choise != LOGOUT)
+				{	
+					//sendData();
+					//system("clear");
+					std::cout << "\nЗдравствуйте, " << _currentUser << "!\n" << "Выберите контакт или действие\n";
+				
 					showListUser();
-					ccd.from = currentUser;
+					showAllMessages();
 
 					std::cout << SEND_ALL << ".Отправить всем\n" << 
 								LOGOUT << ".Выход\n" << 
 								"\nВыберите команду: ";  
 								
-					std::cin >> choise;
+					std::cin >> _choise;
 					std::cin.clear();
 					std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
 
-					if (choise == SEND_ALL)		//Рассылка
+					if (_choise == SEND_ALL)		//Рассылка
 					{
-						ccd.to.clear();
-						currentCMD = "RECV_ALL";
+						_dep.to.clear();
+						_currentCMD = "SEND_ALL";
+						sendMessage();
+						continue;
 					}
-					else if (choise == LOGOUT)	//Выход пользователя
+					else if (_choise == LOGOUT)	//Выход пользователя
 					{
+						resetState();
+						sendData();
+						_dep.DataClear();
 						break;
 					}
 					else
 					{						
-						std::string currentTo = to.at(choise);
-						ccd.to = currentTo;
-						currentCMD = "RECV_MESSAGE";
-						recvMessageFrom();
+						std::string currentTo = _to.at(_choise);
+						_dep.to = currentTo;
+						//recvAllMessageFrom();
+						//sendMessage();
+						
+						continue;
 					}
 					
-					std::cout << ccd.cmd << std::endl;
-					sendMessage();
+					
 				}
 
 					break;

@@ -1,43 +1,6 @@
 ﻿#include "ChatServer.h"
 
-//CCD
-void Chat::ChatCommandData::DataClear()
-{
-	cmd.clear();
-	log.clear();
-	login.clear();
-	password.clear();
-	to.clear();
-	from.clear();
-	textMessage.clear();
-}
-
-void Chat::ChatCommandData::showData()
-{
-			
-	if(!cmd.empty())
-		std::cout << "CMD: " << cmd << std::endl;
-	
-		if(!log.empty())
-		std::cout << "Log: " << log << std::endl;
-
-	if(!login.empty())
-		std::cout << "Login: " << login << std::endl;
-	
-	if(!password.empty())
-		std::cout << "Password: " << password << std::endl;
-	
-	if(!to.empty())
-		std::cout << "To: " << to << std::endl;
-	
-	if(!from.empty())
-		std::cout << "From: " << from << std::endl;
-	
-	if(!textMessage.empty())
-		std::cout << "TextMessage: " << textMessage << std::endl;
-}
-
-//CHAT
+//CHAT-Inet
 Chat::Chat() : socket_file_descriptor(-1), bind_status(-1), connection_status(-1) {}
 
 Chat::~Chat()
@@ -102,13 +65,38 @@ int Chat::acceptClient()
 		return connection;
 }
 
-//Регистрация пользователя
-void Chat::addUser(ChatCommandData& ccd)
+bool Chat::recvData(int client_fd, DataExchangeProtocol& dep)
 {
-	User u(ccd.login, ccd.password);
+	char buf[MESSAGE_LENGTH];
+	int n = recv(client_fd, buf, sizeof(buf),0);
+	if (n <= 0) 
+	{
+		std::cout << "Disconnect\n";
+		return false;
+	}
+	
+	dep.DataClear();
+	dep.inputDataHandler(buf, n);
+	return true;
+}
+bool Chat::sendData(int client_fd, DataExchangeProtocol& dep)
+{
+	char buf[MESSAGE_LENGTH];
+	dep.outputDataHandler(buf);
+	ssize_t n = send(client_fd, buf, sizeof(buf), 0);
+	if(n < 0)
+		return false;
+	//dep.DataClear();
+	
+	return true;
+}
+//Chat
+void Chat::addUser(DataExchangeProtocol& dep)
+{
+	User u(dep.login, dep.password);
 	std::cout << "Пользователь успешно добавлен" << std::endl;
 	_user.push_back(u);
-	ccd.log = "1";
+	dep.log = "1";
 }
 void Chat::addUser(const User& user)
 {
@@ -116,42 +104,49 @@ void Chat::addUser(const User& user)
 	_user.push_back(user);
 }
 //Авторизация
-bool Chat::loginUser(ChatCommandData& ccd) 
+bool Chat::loginUser(int client_fd, DataExchangeProtocol& dep) 
 {
-	if (validateAuthUser(ccd.login, ccd.password))
-	{	ccd.log = "1";
-		return true;
-	}
-	std::cout << "\nServerLog:Ошибка авторизации (неверный логин или  пароль)\n";
+	if (!validateAuthUser(dep.login, dep.password))
+	{	
+		std::cout << "\nServerLog:Ошибка авторизации (неверный логин или  пароль)\n";
+		sendData(client_fd, dep);
 	
-	ccd.log = "0";
-	return false;
-
+		return false;
+	}
+	
+	dep.log = "ok";
+	std::string currentLogin = dep.login;
+	
+	sendData(client_fd, dep);
+	
+	listUsers(client_fd, dep, currentLogin);
+	
+	return true;
 }
 
-void Chat::listUsers(int clientSock, ChatCommandData& ccd) 
+void Chat::listUsers(int client_fd, DataExchangeProtocol& dep, std::string& userName) 
 {
 	for(const User& u : _user)
 	{
-		if (u.getName() == ccd.login)
+		if (u.getName() == userName)
 			continue;
 
-		ccd.to = u.getName();
-		sendData(clientSock, ccd);
+		dep.to = u.getName();
+		sendData(client_fd, dep);
 	}
 	
-	ccd.cmd = "CMD_STOP";
+	dep.cmd = "CMD_STOP";
 	
-	sendData(clientSock, ccd);
+	sendData(client_fd, dep);
 }
 
 //Получение сообщения на сервер
-bool Chat::recvMessageToServer(ChatCommandData& ccd)
+bool Chat::recvMessageToServer(DataExchangeProtocol& dep)
 {
 	for (const User& u : _user)
-		if (u.getName() == ccd.to)
+		if (u.getName() == dep.to)
 		{
-			_textMessages.emplace_back(ccd.from, ccd.to, ccd.textMessage);
+			_textMessages.emplace_back(dep.from, dep.to, dep.textMessage);
 			std::cout << "Сообщение принято на сервер!\n";
 			return true;
 		}
@@ -161,28 +156,61 @@ bool Chat::recvMessageToServer(ChatCommandData& ccd)
 	return false;
 }
 
-void Chat::sendMessageToClient(ChatCommandData& ccd)
+void Chat::sendAllMessageToClient(int client_fd, DataExchangeProtocol& dep)
 {
+	if(dep.textMessage == "exit")
+		return;
+
 	for(const Message<std::string>& m : _textMessages)
-		if(ccd.to == m.getTo())
+		if(dep.to == m.getTo())
 		{
-			ccd.textMessage = m.getMessage();
-			ccd.from = m.getFrom();
+			dep.textMessage = m.getMessage();
+			dep.from = m.getFrom();
+			sendData(client_fd, dep);
+			std::cout << "Сообщение отпрвлено клиенту\n";
+			dep.showData();
 		}
-	std::cout << "Сообщение отпрвлено клиенту\n";
+
+	sendData(client_fd, dep);
+	
+}
+
+void Chat::sendMessageToClient(int client_fd, DataExchangeProtocol& dep)
+{
+	if(dep.textMessage == "exit")
+		return;
+
+	for(const Message<std::string>& m : _textMessages)
+		if(dep.to == m.getTo() || dep.to == m.getFrom())
+		{
+			dep.textMessage = m.getMessage();
+			dep.from = m.getFrom();
+			sendData(client_fd, dep);
+			std::cout << "Сообщение отпрвлено клиенту\n";
+			dep.showData();
+		}
+
+	dep.DataClear();
+	dep.cmd = "END";
+	sendData(client_fd, dep);
+	
 }
 
 //Рассылка
-void Chat::recvMessageFromAll(ChatCommandData& ccd)
-{		
+void Chat::recvMessageFromAll(DataExchangeProtocol& dep)
+{	
+	dep.showData();
+	if(dep.textMessage == "exit")
+		return;
+	
 	for (const User& u : _user)
 	{
-		if (u.getName() == ccd.from)
+		if (u.getName() == dep.from)
 			continue;
 		
-			_textMessages.emplace_back(ccd.from, u.getName(), ccd.textMessage);
+			_textMessages.emplace_back(dep.from, u.getName(), dep.textMessage);
 	}
-	
+	dep.showData();
 	std::cout << "Сообщение отправлено всем!" << std::endl;
 }
 
@@ -191,11 +219,6 @@ void Chat::recvMessageFromAll(ChatCommandData& ccd)
 // 	for(const Message<std::string>& m : _textMessages)
 // 		if ((from == m.getFrom() && to == m.getTo()) || (from == m.getTo() && to == m.getFrom()))
 // 			std::cout << "От: " << m.getFrom() << " Сообщение: " << m.getMessage() << std::endl;
-// }
-
-// std::string Chat::getContact(const int index) const
-// {
-// 	return _user.at(index).getName();
 // }
 
 bool Chat::validateAuthUser(const std::string& name, const std::string& password) const
@@ -221,75 +244,6 @@ bool Chat::validateAddUser(std::string& login, std::string& log) const
 	return true;
 }
 
-bool Chat::recvData(int clientSock, ChatCommandData& ccd)
-{
-	std::cout << "Call recvData" << std::endl; 
-	char buf[MESSAGE_LENGTH];
-	int n = recv(clientSock, buf, sizeof(buf),0);
-	if (n <= 0) 
-	{
-		std::cout << "Disconnect\n";
-		return false;
-	}
-	ccd.DataClear();
-	inputDataHandler(buf, n, ccd);
-	return true;
-}
-
-bool Chat::sendData(int clientSock, ChatCommandData& ccd)
-{
-	std::cout << "Call sendData" << std::endl; 
-	char buf[MESSAGE_LENGTH];
-	outputDataHandler(ccd, buf);
-	ssize_t n = send(clientSock, buf, MESSAGE_LENGTH, 0);
-	if(n < 0)
-		return false;
-	ccd.DataClear();
-	
-	return true;
-}
-
-void Chat::inputDataHandler(char* ch1, int n, ChatCommandData& ccd)
-{
-	//CMD:LOG:LOGIN:PASSWORD:TO:FROM:TEXTMESSAGE
-	int count = 0;
-	char sp = ':';
-
-	for (int i = 0; i < n; i++)
-	{
-		if(ch1[i] == sp && count < 6)
-		{
-			count++;
-			continue;
-		}
-		if(count == 0)
-			ccd.cmd.push_back(ch1[i]);
-		if(count == 1)
-			ccd.log.push_back(ch1[i]);
-		if(count == 2)
-			ccd.login.push_back(ch1[i]);
-		if(count == 3)
-			ccd.password.push_back(ch1[i]);
-		if(count == 4)
-			ccd.to.push_back(ch1[i]);
-		if (count == 5)
-			ccd.from.push_back(ch1[i]);
-		if(count == 6)
-			ccd.textMessage.push_back(ch1[i]);
-	}
-		
-}
-
-void Chat::outputDataHandler(ChatCommandData& ccd, char* ch1)
-{
-	//CMD:LOG:LOGIN:PASSWORD:TO:FROM:TEXTMESSAGE
-	bzero(ch1, MESSAGE_LENGTH);
-	char sp = ':';
-	std::string fullData = ccd.cmd + sp + ccd.log + sp + ccd.login + sp + ccd.password + sp + ccd.to + sp + ccd.from + sp + ccd.textMessage;
-	strcpy(ch1, fullData.c_str());
-	ch1[fullData.size()] = '\0';
-}
-
 void Chat::mainLoop()
 {
 	User u1("VAV", "qwe");
@@ -300,73 +254,67 @@ void Chat::mainLoop()
 	addUser(u2);
 	addUser(u3);
 
-	_textMessages.emplace_back("DEN", "VAV", "seample Text message DEN to VAV");
-	_textMessages.emplace_back("DEN", "VAV", "seample Text message DEN to VAV");
+	_textMessages.emplace_back("DEN", "VAV", "Привет, как дела?");
+	_textMessages.emplace_back("VAV", "DEN", "Отлично. Твои как?");
+	_textMessages.emplace_back("DEN", "VAV", "Тоже хорошо, чем занят?");
+	_textMessages.emplace_back("VAV", "DEN", "Пытаюсь не ёбнуться!");
 
 	if(!initSocket())
 		return;
 
-	ChatCommandData ccd;
-	bool bSendListUsers = false;
+	DataExchangeProtocol dep;
+	bool bAuth = false;
 	while(true)
 	{
 		int client_fd = acceptClient();
-		if (client_fd < 0) continue;
-		
+		if (client_fd < 0) break;
+
 		while(true)
 		{
-			if(!recvData(client_fd, ccd))
-				break;
-			std::cout << "Begin" << std::endl;
-			ccd.showData();
+			if(!recvData(client_fd, dep))			
+					break;
+			dep.showData();
 			//Регистрация
-			if (ccd.cmd == "ADD_USER")
+			if (dep.cmd == "ADD_USER")
 			{  
-				if(validateAddUser(ccd.login, ccd.log))
+				if(validateAddUser(dep.login, dep.log))
 				{
 					std::cout << "AddUser\n";
-					addUser(ccd);
+					addUser(dep);
 				}
-				sendData(client_fd, ccd);			
+				sendData(client_fd, dep);			
 				continue;
 			}
 			
 			//Авторизация
-			else if (ccd.cmd == "AUTH_USER")
+			else if (dep.cmd == "AUTH_USER")
 			{
-				bool bAuth = loginUser(ccd);
-				sendData(client_fd, ccd);
-				recvData(client_fd, ccd);
+				loginUser(client_fd, dep);
 
-				if(bAuth)
-					if(!bSendListUsers)
-					{
-						listUsers(client_fd, ccd);
-						bSendListUsers = true;
-					}
 				continue;
 			}
 			//Получение сообщения от клиента
-			else if(ccd.cmd == "SEND_MESSAGE")
+			else if(dep.cmd == "SEND_MESSAGE")
 			{	
-				std::cout << "Send\n";
-				recvMessageToServer(ccd);
+				recvMessageToServer(dep);
 				continue;
 			}
 			//Отправка
-			else if (ccd.cmd == "RECV_MESSAGE")
+			else if (dep.cmd == "RECV_MESSAGE")
 			{
-				//recvData(client_fd, ccd);
-				sendMessageToClient(ccd);
-				sendData(client_fd, ccd);
+				sendMessageToClient(client_fd, dep);
 				continue;
 			}
-			else if(ccd.cmd == "RECV_ALL")
+			else if(dep.cmd == "SEND_ALL")
 			{
-				ccd.showData();
-				recvMessageFromAll(ccd);
-				sendData(client_fd, ccd);
+				recvMessageFromAll(dep);
+				//sendData(client_fd, dep);
 				continue;
+			}
+			else if (dep.cmd == "EXIT")
+			{
+				dep.DataClear();
+				continue;;
 			}
 			
 		}

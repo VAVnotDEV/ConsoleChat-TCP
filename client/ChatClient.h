@@ -2,31 +2,17 @@
 #include <sys/socket.h> //socket
 #include <arpa/inet.h> //htonl ntohl
 #include <unistd.h>
-#include <string.h>
 #include <iostream>
 #include <vector>
+#include "../Message.h"
+#include "../DataExchangeProtocol.h"
 
 #define MESSAGE_LENGTH 1024
 #define PORT 63462
 
+
 class ChatClient
 {
-private:
-    struct ChatCommandData
-	{	
-		//CMD:LOG:LOGIN:PASSWORD:TO:FROM:TEXTMESSAGE
-		std::string cmd;
-		std::string log;
-		std::string login;
-		std::string password;
-		std::string to;
-		std::string from;
-		std::string textMessage;	
-
-        void DataClear();
-        void showData();
-    };
-    
 public:
 
     ChatClient();
@@ -34,8 +20,7 @@ public:
 
     bool SetupConnection();
 
-	void inputDataHandler(char* ch1, int n);
-	void outputDataHandler(char* ch1);
+
     bool sendData();
     bool recvData();
 
@@ -43,9 +28,11 @@ public:
     bool userRegister();
     void getListUser();
     void showListUser();
+    void showAllMessages();
     void sendMessage();
     void recvMessageFrom();
-    
+    void recvAllMessageFrom();
+    void resetState();
     void mainLoop();
 
 
@@ -57,15 +44,19 @@ private:
         LOGOUT = 8, 
         EXIT = 9 };
 
-    ChatCommandData ccd;
-    std::string currentUser;
-    std::vector<std::string>to;
-    std::string currentCMD;
+    DataExchangeProtocol _dep;
+    std::string _currentUser;
+    
+    std::vector<Message<std::string>>_messages;
+    std::vector<std::string>_to;
+    
+    std::string _currentCMD;
+    bool _bGetListUsers = true;
 
 
-    int choise;    
-	int socket_file_descriptor, connection, bytes_read;
-	struct sockaddr_in serveraddress, client;
+    int _choise;    
+	int _socket_file_descriptor, _connection, _bytes_read;
+	struct sockaddr_in _serveraddress, _client;
     
 };
 
