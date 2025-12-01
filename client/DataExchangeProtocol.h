@@ -14,7 +14,7 @@ struct DataExchangeProtocol
     std::string textMessage;	
 
     void inputDataHandler(char* ch1, int n);
-    void outputDataHandler(char* ch1);
+    void outputDataHandler(char* ch1) const;
     void DataClear();
-    void showData();
+    void showData() const;
 };

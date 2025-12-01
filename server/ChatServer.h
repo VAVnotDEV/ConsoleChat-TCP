@@ -1,14 +1,23 @@
 ﻿#pragma once
-#include "../Message.h"
-#include "../DataExchangeProtocol.h"
-//#include "User.h"
+#include "Message.h"
+#include "DataExchangeProtocol.h"
 #include <vector>
-#include <sys/socket.h>
-#include <arpa/inet.h>
 #include <limits>
 #include <iostream>
 #include <string.h>
+
+#ifdef _WIN32
+#include <winsock2.h>
+#include <WS2tcpip.h>
+#pragma comment(lib, "ws2_32.lib")
+using SocketType = SOCKET;
+
+#else	
+#include <sys/socket.h>
+#include <arpa/inet.h>
 #include <unistd.h>
+using SocketType = int;
+#endif
 
 #define MESSAGE_LENGTH 1024
 #define PORT 63462
@@ -24,7 +33,7 @@ public:
 	~Chat();
 	//Inet Logic
 	bool initSocket();
-	int acceptClient();
+	SocketType acceptClient();
 	bool recvData(int client_fd, DataExchangeProtocol& dep);
 	bool sendData(int client_fd, DataExchangeProtocol& dep);
 	
@@ -61,6 +70,7 @@ private:
 	std::vector<User>_user;
 	std::vector<Message<std::string>>_textMessages;
 	struct sockaddr_in serveraddress;
-    int socket_file_descriptor, bind_status, connection_status;
+	SocketType socket_file_descriptor;
+	int bind_status, connection_status;
 };
 

@@ -1,11 +1,21 @@
 #pragma once
-#include <sys/socket.h> //socket
-#include <arpa/inet.h> //htonl ntohl
-#include <unistd.h>
 #include <iostream>
 #include <vector>
-#include "../Message.h"
-#include "../DataExchangeProtocol.h"
+
+#ifdef _WIN32
+#include <winsock2.h>
+#include <ws2tcpip.h>
+#pragma comment(lib, "ws2_32.lib")
+using SocketType = SOCKET;
+#else
+#include <sys/socket.h> //socket
+#include <arpa/inet.h>  //htonl ntohl
+#include <unistd.h>
+using SocketType = int;
+#endif
+
+#include "Message.h"
+#include "DataExchangeProtocol.h"
 
 #define MESSAGE_LENGTH 1024
 #define PORT 63462
@@ -55,7 +65,8 @@ private:
 
 
     int _choise;    
-	int _socket_file_descriptor, _connection, _bytes_read;
+    SocketType _socket_file_descriptor;
+	int  _connection, _bytes_read;
 	struct sockaddr_in _serveraddress, _client;
     
 };

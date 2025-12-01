@@ -34,18 +34,24 @@ void DataExchangeProtocol::inputDataHandler(char* ch1, int n)
 	
 }
 
-void DataExchangeProtocol::outputDataHandler(char* ch1)
+void DataExchangeProtocol::outputDataHandler(char* ch1) const
 {
 	//CMD:LOG:LOGIN:PASSWORD:TO:FROM:TEXTMESSAGE
-	bzero(ch1, MESSAGE_LENGTH);
+	memset(ch1, 0, MESSAGE_LENGTH);
 	char sp = ':';
 	std::string fullData = cmd + sp + log + sp + login + sp + password + sp + to + sp + from + sp + textMessage;
+
+#ifdef _WIN32
+
+	strcpy_s(ch1, MESSAGE_LENGTH, fullData.c_str());
+#else
 	strcpy(ch1, fullData.c_str());
-	ch1[fullData.size()] = '\0';
+#endif
+	//ch1[fullData.size()] = '\0';
 
 }
 
-void DataExchangeProtocol::showData()
+void DataExchangeProtocol::showData() const
 {
 			std::cout << "*****DEP BEGIN*****\n";
 			if(!cmd.empty())

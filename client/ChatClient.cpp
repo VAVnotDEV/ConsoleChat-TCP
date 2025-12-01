@@ -1,4 +1,4 @@
-#include "ChatClient.h"
+﻿#include "ChatClient.h"
 #include <limits>
 
 
@@ -7,14 +7,21 @@ ChatClient::ChatClient() : _socket_file_descriptor(-1), _connection(-1), _bytes_
 
 ChatClient::~ChatClient()
 {
-	if(_socket_file_descriptor >= 0)
+#ifdef _WIN32
+	if (_socket_file_descriptor != INVALID_SOCKET)
+	{
+		closesocket(_socket_file_descriptor);
+		_socket_file_descriptor = INVALID_SOCKET;
+#else
+	if (_socket_file_descriptor >= 0)
 	{
 		close(_socket_file_descriptor);
 		_socket_file_descriptor = -1;
+#endif
 		_connection = -1;
 		_bytes_read = -1;
 	}
-}
+	}
 //Socket
 bool ChatClient::SetupConnection()
 {
@@ -26,7 +33,12 @@ bool ChatClient::SetupConnection()
 		return false;
 	}
 
-	_serveraddress.sin_addr.s_addr = inet_addr("127.0.0.1");
+	//_serveraddress.sin_addr.s_addr = inet_addr("127.0.0.1");
+	#ifdef _WIN32
+	InetPton(AF_INET, L"127.0.0.1", &_serveraddress.sin_addr);
+	#else
+	inet_pton(AF_INET, "127.0.0.1", &_serveraddress.sin_addr);
+	#endif
 	_serveraddress.sin_port = htons(PORT);
 	_serveraddress.sin_family = AF_INET;
 
@@ -45,7 +57,7 @@ bool ChatClient::sendData()
 {
 	char buf[MESSAGE_LENGTH];
 	_dep.outputDataHandler(buf);
-	ssize_t n = send(_socket_file_descriptor, buf, sizeof(buf), 0);
+	int n = send(_socket_file_descriptor, buf, sizeof(buf), 0);
 	if(n < 0)
 		return false;
 	
@@ -213,7 +225,7 @@ void ChatClient::mainLoop()
 
 		std::cin >> _choise;
 		std::cin.clear();
-		std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+		std::cin.ignore((std::numeric_limits<std::streamsize>::max)(), '\n');
 		
 		switch (_choise)
 		{
@@ -242,7 +254,7 @@ void ChatClient::mainLoop()
 								
 					std::cin >> _choise;
 					std::cin.clear();
-					std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+					std::cin.ignore((std::numeric_limits<std::streamsize>::max)(), '\n');
 
 					if (_choise == SEND_ALL)		//Рассылка
 					{

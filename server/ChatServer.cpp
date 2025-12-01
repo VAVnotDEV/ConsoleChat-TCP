@@ -5,17 +5,26 @@ Chat::Chat() : socket_file_descriptor(-1), bind_status(-1), connection_status(-1
 
 Chat::~Chat()
 {
-	if(socket_file_descriptor != -1)
-	close(socket_file_descriptor);
+#ifdef _WIN32
+	if (socket_file_descriptor != INVALID_SOCKET)
+		closesocket(socket_file_descriptor);
+#else
+	if (socket_file_descriptor != -1)
+		close(socket_file_descriptor);
+#endif
 }
 
 bool Chat::initSocket()
 {
 		socket_file_descriptor = socket(AF_INET, SOCK_STREAM, 0);
 
-		if(socket_file_descriptor == -1)
+	#ifdef _WIN32
+		if (socket_file_descriptor == INVALID_SOCKET)
+	#else
+		if (socket_file_descriptor == -1)
+#	endif
 		{
-			perror("Socket creation failed");
+			perror("Socket creation failed!");
 			return false;
 		}
 
@@ -25,7 +34,11 @@ bool Chat::initSocket()
 
 		//Привязка сокета
 		bind_status = bind(socket_file_descriptor, (struct sockaddr*)&serveraddress, sizeof(serveraddress));
-		if(bind_status == -1)
+		#ifdef _WIN32
+		if (bind_status == SOCKET_ERROR)
+		#else
+		if (bind_status == -1)
+		#endif
 		{
 			perror("Socket binding status!");
 			return false;
@@ -34,11 +47,15 @@ bool Chat::initSocket()
 		// Поставим сервер на прием данных 
 		connection_status = listen(socket_file_descriptor, 5);
 		
+	#ifdef _WIN32
+		if (connection_status == SOCKET_ERROR)
+	#else
 		if (connection_status == -1)
+	#endif
 		{
-    		std::cout << "Socket is unable to listen for new connections.!" << std::endl;
-    		return false;
-    	}  
+			std::cout << "Socket is unable to listen for new connections.!" << std::endl;
+			return false;
+		}
 		else  
 		{
             std::cout << "Server is listening for new connection: " << std::endl;
@@ -48,12 +65,12 @@ bool Chat::initSocket()
 
 }
 
-int Chat::acceptClient()
+SocketType Chat::acceptClient()
 {
 		struct sockaddr_in client;
 		socklen_t length = sizeof(client);
 		
-		int connection = accept(socket_file_descriptor, (struct sockaddr*)&client, &length);
+		SocketType connection = accept(socket_file_descriptor, (struct sockaddr*)&client, &length);
 		
 		if(connection <= 0)  
 		{
@@ -83,7 +100,7 @@ bool Chat::sendData(int client_fd, DataExchangeProtocol& dep)
 {
 	char buf[MESSAGE_LENGTH];
 	dep.outputDataHandler(buf);
-	ssize_t n = send(client_fd, buf, sizeof(buf), 0);
+	int n = send(client_fd, buf, sizeof(buf), 0);
 	if(n < 0)
 		return false;
 	//dep.DataClear();

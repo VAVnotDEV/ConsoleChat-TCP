@@ -3,32 +3,26 @@
 
 int main()
 {
-    Chat chat;
-    chat.mainLoop();
+    setlocale(LC_ALL, "");
+#ifdef _WIN32
+    WSADATA wsaData;
+    int wsaResult = WSAStartup(MAKEWORD(2, 2), &wsaData);
+    if (wsaResult != 0) {
+        std::cerr << "WSAStartup failed: " << wsaResult << std::endl;
+        return 1;
+    }
+#endif
+
+    {
+        Chat chat;
+        chat.mainLoop();
+    }
+
+#ifdef _WIN32
+    WSACleanup();
+#endif
+
+    return 0;
 }
 
-// int main()
-// {
-//     Chat chat;
-//     if(!chat.initSocket())
-//         return 1;
-//       int cs = chat.acceptClient();
-//         while(true)
-//         {
-      
-//        // if(cs < 0)  continue;
-
-//         char m[MESSAGE_LENGTH];
-
-
-//             std::cout << "\nWaiting recieve...\n";
-
-//             int n = recv(cs, m, sizeof(m), 0);
-//             if (n <= 0) std::cout << "Recv failed\n";
-//           //  m[n] = '\0';
-//             std::cout << m;
-//         }
-
-//     return 0;
-// }
 
